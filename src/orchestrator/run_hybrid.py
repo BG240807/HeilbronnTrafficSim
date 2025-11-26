@@ -3,9 +3,9 @@ import subprocess
 import json
 import tempfile
 import logging
-from hybrid.hybrid_server import HybridServer
-from matsim.matsim_runner import MATSimRunner
-from sumo.sumo_runner import SUMORunner
+from ..hybrid.hybrid_server import HybridServer
+from ..matsim.matsim_runner import MATSimRunner
+from ..sumo.sumo_runner import SUMORunner
 
 logging.basicConfig(level=logging.INFO)
 

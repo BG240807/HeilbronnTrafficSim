@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from pathlib import Path
 import shutil
 import uvicorn
-from orchestrator.run_hybrid import HybridOrchestrator
+from ..orchestrator.run_hybrid import HybridOrchestrator
 
 app = FastAPI(title='Heilbronn Hybrid Traffic API')
 
