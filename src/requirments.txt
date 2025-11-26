@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+httpx
+pydantic
+traci==1.16.0
+sumolib
+numpy
+pandas
+geopandas
+pyyaml
+aiofiles
+python-multipart
+py-cma
+requests

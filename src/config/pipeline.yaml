@@ -1,0 +1,8 @@
+matsim:
+  jar: third_party/matsim/matsim.jar
+  iterations: 100
+sumo:
+  binary: sumo
+  seeds: 5
+pipeline:
+  hotspot_top_n: 10
