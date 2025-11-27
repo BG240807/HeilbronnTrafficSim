@@ -9,6 +9,7 @@ This builder focuses on:
 from __future__ import annotations
 
 import os
+import copy
 import shutil
 import subprocess
 import textwrap
@@ -34,21 +35,24 @@ class OSMNetworkBuilder:
     def download_network(self, bbox: Tuple[float, float, float, float] | None = None) -> nx.MultiDiGraph:
         """Download the road network for the study area."""
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        if bbox:
-            north, south, east, west = bbox
-            graph = ox.graph_from_bbox(
-                north, south, east, west, network_type="drive_service"
-            )
-            self._last_bbox = (
-                min(north, south),
-                max(north, south),
-                min(west, east),
-                max(west, east),
-            )
-        else:
-            graph = ox.graph_from_place(self.place_name, network_type="drive_service")
-            self._last_bbox = self._graph_bbox(graph)
-        return ox.add_edge_speeds(ox.add_edge_lengths(graph))
+        # if bbox:
+        #     north, south, east, west = bbox
+        #     graph = ox.graph_from_bbox(
+        #         bbox, network_type="drive_service"
+        #     )
+        #     self._last_bbox = (
+        #         min(north, south),
+        #         max(north, south),
+        #         min(west, east),
+        #         max(west, east),
+        #     )
+        # else:
+        #     graph = ox.graph_from_place(self.place_name, network_type="drive_service")
+        #     self._last_bbox = self._graph_bbox(graph)
+        # return ox.add_edge_speeds(ox.add_edge_lengths(graph))
+
+        graph = ox.graph_from_xml("python_sim/data/heilbronn-weipertstrasse.osm")
+        return ox.add_edge_speeds(ox.distance.add_edge_lengths(graph))
 
     def export_to_sumo(self, graph: nx.MultiDiGraph, output_dir: Path) -> Path:
         """Convert the OSM graph into a SUMO .net.xml via netconvert."""
@@ -57,9 +61,20 @@ class OSMNetworkBuilder:
         ox.save_graphml(graph, filepath=graphml_path)
 
         bbox = self._last_bbox or self._graph_bbox(graph)
+        
+        # 1. FIX: Define the osm_extract path (The missing line)
         osm_extract = self.cache_dir / "heilbronn_weipert.osm.xml"
+        
+        # 2. Re-download the raw OSM data (Crucial to address 'No nodes loaded' if corrupted)
         self._download_osm_extract(bbox, osm_extract)
 
+        # 3. Setup Environment for netconvert (FIX: SUMO_HOME issue)
+        sumo_bin_path = str(self.sumo_home / "bin" / "netconvert")
+        env = copy.copy(os.environ)
+        if self.sumo_home:
+            env["SUMO_HOME"] = str(self.sumo_home)
+
+        # 4. Define the command
         net_path = output_dir / "heilbronn_weipert.net.xml"
         cmd = [
             self._resolve_netconvert(),
@@ -74,7 +89,10 @@ class OSMNetworkBuilder:
             "--ramps.guess",
             "--tls.join",
         ]
-        subprocess.run(cmd, check=True)
+        
+        # 5. Execute command
+        subprocess.run(cmd, check=True, env=env)
+        
         return net_path
 
     # ------------------------------------------------------------------ helpers
@@ -82,16 +100,20 @@ class OSMNetworkBuilder:
         self, bbox: Tuple[float, float, float, float], target_path: Path
     ) -> Path:
         """Pull raw OSM data for the bbox so that netconvert can ingest it."""
+        # Note: We use the format expected by the Overpass API: south,west,north,east
         south, north, west, east = bbox
+        
+        # This is the standard, robust query that netconvert expects
         query = textwrap.dedent(
             f"""
             [out:xml][timeout:60];
             (
-              way["highway"]({south},{west},{north},{east});
-              relation["route"="bus"]({south},{west},{north},{east});
+              node({south},{west},{north},{east});
+              way({south},{west},{north},{east});
+              relation({south},{west},{north},{east});
             );
             (._;>;);
-            out body;
+            out;
             """
         ).strip()
         response = requests.post(self.overpass_url, data={"data": query}, timeout=120)
