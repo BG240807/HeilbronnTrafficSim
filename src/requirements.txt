@@ -1,8 +1,8 @@
 fastapi
-uvicorn[standard]
+uvicorn
 httpx
 pydantic
-traci==1.16.0
+traci
 sumolib
 numpy
 pandas
@@ -10,5 +10,7 @@ geopandas
 pyyaml
 aiofiles
 python-multipart
-py-cma
+cma
 requests
+matplotlib
+osmnx
