@@ -17,7 +17,14 @@ class MATSimRunner:
         cfg_path = self.output_dir / 'matsim_config.xml'
         with open(cfg_path, 'w') as f:
             f.write(config)
-        cmd = f'java -Xms2g -Xmx6g -jar "{self.matsim_jar}" {cfg_path}'
+        cmd = [
+    "/usr/local/opt/openjdk@21/bin/java",
+    "-Xms2g",
+    "-Xmx6g",
+    "-jar",
+    "third_party/matsim/matsim.jar",
+    config_file
+]
         logging.info(f'Launching MATSim: {cmd}')
         proc = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
         if proc.returncode != 0:
